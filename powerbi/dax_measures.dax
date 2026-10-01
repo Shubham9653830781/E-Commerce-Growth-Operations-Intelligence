@@ -1,0 +1,178 @@
+// ====================================================================
+// E-COMMERCE GROWTH & OPERATIONS INTELLIGENCE - DAX MEASURES LIBRARY
+// Dataset: Brazilian E-Commerce Public Dataset by Olist
+// Data Model: Star Schema (fact_orders, dim_customers, dim_sellers, 
+//                          dim_products, dim_payments, dim_reviews, dim_date)
+// ====================================================================
+
+// --------------------------------------------------------------------
+// 1. CORE VOLUME & MACRO METRICS
+// --------------------------------------------------------------------
+
+Total Orders = 
+DISTINCTCOUNT(fact_orders[order_id])
+
+Total Customers = 
+DISTINCTCOUNT(dim_customers[customer_unique_id])
+
+Total Sellers = 
+DISTINCTCOUNT(dim_sellers[seller_id])
+
+Total Products = 
+DISTINCTCOUNT(dim_products[product_id])
+
+Total Items Sold = 
+SUM(fact_orders[total_items])
+
+// --------------------------------------------------------------------
+// 2. FINANCIAL & MONETARY MEASURES
+// --------------------------------------------------------------------
+
+Total GMV = 
+SUM(fact_orders[order_subtotal])
+
+Total Freight Billed = 
+SUM(fact_orders[order_freight])
+
+Total Order Value = 
+[Total GMV] + [Total Freight Billed]
+
+Total Payments Collected = 
+SUM(fact_orders[total_payment_value])
+
+Average Order Value = 
+DIVIDE([Total GMV], [Total Orders], 0)
+
+Average Order Total = 
+DIVIDE([Total Order Value], [Total Orders], 0)
+
+Average Payment per Order = 
+DIVIDE([Total Payments Collected], [Total Orders], 0)
+
+// --------------------------------------------------------------------
+// 3. CUSTOMER RETENTION & LOYALTY MEASURES
+// --------------------------------------------------------------------
+
+Repeat Customers Count = 
+CALCULATE(
+    DISTINCTCOUNT(dim_customer_rfm[customer_unique_id]),
+    dim_customer_rfm[frequency] > 1
+)
+
+Repeat Customer Rate = 
+DIVIDE([Repeat Customers Count], [Total Customers], 0)
+
+Orders per Customer = 
+DIVIDE([Total Orders], [Total Customers], 0)
+
+Revenue per Customer = 
+DIVIDE([Total GMV], [Total Customers], 0)
+
+// --------------------------------------------------------------------
+// 4. OPERATIONS & FULFILLMENT EFFICIENCY
+// --------------------------------------------------------------------
+
+Delivered Orders = 
+CALCULATE(
+    [Total Orders],
+    fact_orders[order_status] = "delivered"
+)
+
+Canceled Orders = 
+CALCULATE(
+    [Total Orders],
+    fact_orders[order_status] = "canceled"
+)
+
+Cancellation Rate = 
+DIVIDE([Canceled Orders], [Total Orders], 0)
+
+Late Delivered Orders = 
+CALCULATE(
+    [Total Orders],
+    fact_orders[order_status] = "delivered",
+    fact_orders[is_late] = 1
+)
+
+Late Delivery Rate = 
+DIVIDE([Late Delivered Orders], [Delivered Orders], 0)
+
+Average Delivery Days = 
+CALCULATE(
+    AVERAGE(fact_orders[actual_delivery_days]),
+    fact_orders[order_status] = "delivered",
+    fact_orders[actual_delivery_days] >= 0
+)
+
+Average Estimated Delivery Days = 
+CALCULATE(
+    AVERAGE(fact_orders[estimated_delivery_days]),
+    fact_orders[order_status] = "delivered"
+)
+
+Average Delivery Delay Days = 
+CALCULATE(
+    AVERAGE(fact_orders[delivery_delay_days]),
+    fact_orders[order_status] = "delivered"
+)
+
+Average Approval Time Hours = 
+AVERAGE(fact_orders[approval_time_hours])
+
+Average Carrier Handoff Days = 
+AVERAGE(fact_orders[carrier_delivery_days])
+
+// --------------------------------------------------------------------
+// 5. CUSTOMER SATISFACTION & REVIEWS
+// --------------------------------------------------------------------
+
+Average Review Score = 
+AVERAGE(fact_orders[review_score])
+
+Five Star Reviews Count = 
+CALCULATE(
+    COUNTROWS(dim_reviews),
+    dim_reviews[review_score] = 5
+)
+
+Five Star Review Rate = 
+DIVIDE([Five Star Reviews Count], COUNTROWS(dim_reviews), 0)
+
+One Star Reviews Count = 
+CALCULATE(
+    COUNTROWS(dim_reviews),
+    dim_reviews[review_score] = 1
+)
+
+One Star Review Rate = 
+DIVIDE([One Star Reviews Count], COUNTROWS(dim_reviews), 0)
+
+// --------------------------------------------------------------------
+// 6. PERCENTAGE CONTRIBUTIONS & TIME INTELLIGENCE
+// --------------------------------------------------------------------
+
+Category GMV Contribution % = 
+DIVIDE(
+    [Total GMV],
+    CALCULATE([Total GMV], ALL(dim_products[category_name_english])),
+    0
+)
+
+State GMV Contribution % = 
+DIVIDE(
+    [Total GMV],
+    CALCULATE([Total GMV], ALL(dim_customers[customer_state])),
+    0
+)
+
+GMV MoM Growth % = 
+VAR CurrentGMV = [Total GMV]
+VAR PriorMonthGMV = CALCULATE([Total GMV], DATEADD(dim_date[Date], -1, MONTH))
+RETURN
+DIVIDE(CurrentGMV - PriorMonthGMV, PriorMonthGMV, 0)
+
+Order Volume MoM Growth % = 
+VAR CurrentOrders = [Total Orders]
+VAR PriorMonthOrders = CALCULATE([Total Orders], DATEADD(dim_date[Date], -1, MONTH))
+RETURN
+DIVIDE(CurrentOrders - PriorMonthOrders, PriorMonthOrders, 0)

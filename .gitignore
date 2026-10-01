@@ -1,0 +1,22 @@
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Jupyter
+.ipynb_checkpoints/
+
+# VS Code
+.vscode/
+
+# Large generated processed files
+data/processed/*.csv
+data/processed/*.db
+
+# Large raw datasets
+data/raw/olist_geolocation_dataset.csv
+
+# Temporary files
+*.tmp
+*.log
